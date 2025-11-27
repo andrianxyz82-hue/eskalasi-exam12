@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../../core/app_theme.dart';
 import '../../services/exam_service.dart';
+import '../../services/lock_service.dart';
 import 'exam_results_screen.dart';
 
 class TakeExamScreen extends StatefulWidget {
@@ -13,8 +14,9 @@ class TakeExamScreen extends StatefulWidget {
   State<TakeExamScreen> createState() => _TakeExamScreenState();
 }
 
-class _TakeExamScreenState extends State<TakeExamScreen> {
+class _TakeExamScreenState extends State<TakeExamScreen> with WidgetsBindingObserver {
   final _examService = ExamService();
+  final _lockService = LockService();
   
   Map<String, dynamic>? _exam;
   List<Map<String, dynamic>> _questions = [];
@@ -30,13 +32,35 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _enableLockMode();
     _loadExam();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _disableLockMode();
     _timer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-enforce lock mode if app comes to foreground
+      _enableLockMode();
+    }
+  }
+
+  Future<void> _enableLockMode() async {
+    await _lockService.startLockTask();
+    await _lockService.disableGestureNavigation();
+  }
+
+  Future<void> _disableLockMode() async {
+    await _lockService.stopLockTask();
+    await _lockService.enableGestureNavigation();
   }
 
   Future<void> _loadExam() async {
@@ -127,8 +151,8 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
         print('Navigating to results screen...');
         _timer?.cancel();
         
-        // Disable lock mode if active (assuming screen_protector or similar is used)
-        // await ScreenProtector.preventScreenshotOn(); // Re-enable screenshots/disable secure mode
+        // Disable lock mode before navigating away
+        await _disableLockMode();
         
         Navigator.pushReplacement(
           context,
@@ -193,32 +217,13 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
 
     return WillPopScope(
       onWillPop: () async {
-        final confirm = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF2D2D44),
-            title: const Text('Exit Exam?', style: TextStyle(color: Colors.white)),
-            content: const Text(
-              'Your progress will be lost. Are you sure?',
-              style: TextStyle(color: Colors.grey),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Exit', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        );
-        return confirm ?? false;
+        // Prevent back button
+        return false;
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
+          automaticallyImplyLeading: false, // Hide default back button
           backgroundColor: isDark ? const Color(0xFF2D2D44) : Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -246,6 +251,7 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
                 ),
               );
               if (confirm == true && mounted) {
+                await _disableLockMode();
                 Navigator.pop(context);
               }
             },
@@ -465,6 +471,7 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       color: isDark ? Colors.white : AppTheme.textDark,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                 ),
@@ -479,6 +486,11 @@ class _TakeExamScreenState extends State<TakeExamScreen> {
   Widget _buildEssayInput(String questionId, bool isDark) {
     final controller = TextEditingController(text: _answers[questionId] ?? '');
     
+    // Use a unique key to prevent controller recreation issues if widget rebuilds
+    // But for now, simple controller creation in build is okay if state is managed elsewhere
+    // Ideally we should manage controllers in state, but for this quick fix:
+    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+
     return TextField(
       controller: controller,
       style: TextStyle(color: isDark ? Colors.white : AppTheme.textDark),

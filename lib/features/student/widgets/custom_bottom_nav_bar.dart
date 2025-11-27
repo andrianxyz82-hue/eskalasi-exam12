@@ -24,11 +24,11 @@ class CustomBottomNavBar extends StatelessWidget {
       child: Container(
         height: 70,
         decoration: BoxDecoration(
-          color: const Color(0xFF2D2D44),
+          color: const Color(0xFF2d2d44), // Nav Bar Background
           borderRadius: BorderRadius.circular(35),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.5),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -52,12 +52,12 @@ class CustomBottomNavBar extends StatelessWidget {
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF7C7CFF) : Colors.transparent,
+          color: isActive ? const Color(0xFF7c7cff) : Colors.transparent, // Purple Accent
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
-          color: isActive ? Colors.white : Colors.grey,
+          color: isActive ? Colors.white : Colors.grey, // White icon on purple
           size: 28,
         ),
       ),

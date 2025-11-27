@@ -1,165 +1,220 @@
 import 'package:flutter/material.dart';
 import '../../core/app_theme.dart';
-
 import '../../services/notification_service.dart';
+import '../../services/course_service.dart';
+import 'package:go_router/go_router.dart';
 
 class StudentHomeScreen extends StatefulWidget {
-  const StudentHomeScreen({super.key});
+  final Function(int)? onTabChange;
+  const StudentHomeScreen({super.key, this.onTabChange});
 
   @override
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
 }
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  final _courseService = CourseService();
+  List<Map<String, dynamic>> _popularCourses = [];
+  bool _loading = true;
+
   @override
   void initState() {
     super.initState();
     NotificationService().initialize();
+    _loadPopularCourses();
+  }
+
+  Future<void> _loadPopularCourses() async {
+    try {
+      final courses = await _courseService.getCourses();
+      if (mounted) {
+        setState(() {
+          _popularCourses = courses.take(3).toList(); // Take top 3
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading courses: $e');
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFF1d1d2b),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Section
+                const SizedBox(height: 20),
+                // 1. Top Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello,',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        Text(
-                          'Good Evening',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w400,
-                              ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF2D2D44),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
+                    _buildTopButton(Icons.arrow_back_ios_new_rounded, () {
+                      // Handle back or menu
+                    }),
+                    const Text(
+                      'Eskalasi Safe Exam',
+                      style: TextStyle(
                         color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    _buildTopButton(Icons.search_rounded, () {}),
                   ],
                 ),
-                const SizedBox(height: 24),
+                
+                const SizedBox(height: 30),
 
-                // Search Bar
+                // 2. Neon Progress Card
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2D2D44),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFF7c7cff), // Purple Accent
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, color: Colors.grey),
-                      const SizedBox(width: 12),
+                      // Circular Progress
+                      SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: Stack(
+                          children: [
+                            const Center(
+                              child: SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: CircularProgressIndicator(
+                                  value: 0.45,
+                                  strokeWidth: 8,
+                                  backgroundColor: Colors.black12,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            Center(
+                              child: Text(
+                                '45%',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Text & Button
                       Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search',
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey.withOpacity(0.7)),
-                          ),
-                          style: const TextStyle(color: Colors.white),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Daily Plan Is Not\nSet Completely', // Adjusted text to match image better or use requested text
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: () {
+                                if (widget.onTabChange != null) {
+                                  widget.onTabChange!(1); // Switch to Courses tab
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2d2d44),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Continue Learning', // Changed to match request "Continue Learning" vs image "Add Workout"
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
 
-                // Banner Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assetsimages/well.png',
-                    height: 220,
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 220,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2D2D44),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_outlined,
-                            color: Colors.white30,
-                            size: 60,
-                          ),
-                        ),
-                      );
-                    },
+                const SizedBox(height: 30),
+
+                // 3. Categories List
+                const Text(
+                  'More Courses',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Category Grid
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.1,
-                  children: [
-                    _buildCategoryCard(
-                      context,
-                      'Accounting',
-                      '15 Courses',
-                      Icons.calculate_outlined,
-                      const Color(0xFF7C7CFF),
-                    ),
-                    _buildCategoryCard(
-                      context,
-                      'Photography',
-                      '6 Courses',
-                      Icons.camera_alt_outlined,
-                      const Color(0xFF4DABF7),
-                    ),
-                    _buildCategoryCard(
-                      context,
-                      'Product Design',
-                      '8 Courses',
-                      Icons.palette_outlined,
-                      const Color(0xFFFFB84D),
-                    ),
-                    _buildCategoryCard(
-                      context,
-                      'Marketing',
-                      '4 Courses',
-                      Icons.campaign_outlined,
-                      const Color(0xFF20C997),
-                    ),
-                  ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 90,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildCategoryItem(Icons.code_rounded, 'Programming'),
+                      _buildCategoryItem(Icons.brush_rounded, 'Design'),
+                      _buildCategoryItem(Icons.campaign_rounded, 'Marketing'),
+                      _buildCategoryItem(Icons.calculate_rounded, 'Math'),
+                      _buildCategoryItem(Icons.language_rounded, 'Language'),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 80),
+
+                const SizedBox(height: 30),
+
+                // 4. Popular Courses
+                const Text(
+                  'Popular Courses',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Column(
+                        children: _popularCourses.map((course) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildPopularCourseCard(
+                              course['title'] ?? 'Untitled',
+                              '${course['duration'] ?? 'N/A'} • ${course['instructor_name'] ?? 'Unknown'}',
+                              const Color(0xFF2d2d44),
+                              course['id'],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                const SizedBox(height: 100), // Bottom padding for nav bar
               ],
             ),
           ),
@@ -168,55 +223,137 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _buildCategoryCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color accentColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2D2D44),
-        borderRadius: BorderRadius.circular(24),
+  Widget _buildTopButton(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icon,
+          color: Colors.black,
+          size: 20,
+        ),
       ),
+    );
+  }
+
+  Widget _buildCategoryItem(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFF2d2d44),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white10),
             ),
             child: Icon(
               icon,
-              color: accentColor,
+              color: Colors.white,
               size: 28,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
-            title,
+            label,
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 13,
               color: Colors.grey,
+              fontSize: 12,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPopularCourseCard(String title, String subtitle, Color color, String? courseId) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      if (courseId != null) {
+                        context.push('/course/detail/$courseId');
+                      }
+                    },
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Start', // Changed to "Start" or "Watch"
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.play_arrow_rounded,
+                        size: 16,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ],
+            ),
+          ),
+          // Placeholder for image
+          Container(
+            width: 80,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.image, color: Colors.white24),
           ),
         ],
       ),

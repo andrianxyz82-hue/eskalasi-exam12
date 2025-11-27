@@ -10,6 +10,7 @@ import 'package:safe_exam_app/features/teacher/teacher_dashboard_screen.dart';
 import 'package:safe_exam_app/features/teacher/teacher_courses_screen.dart';
 import 'package:safe_exam_app/features/teacher/teacher_exams_screen.dart';
 import 'package:safe_exam_app/features/exam/exam_detail_screen.dart';
+import 'package:safe_exam_app/features/student/course_detail_screen.dart';
 import 'package:safe_exam_app/features/exam/exam_result_screen.dart';
 import 'package:safe_exam_app/features/teacher/monitoring/monitoring_dashboard_screen.dart';
 import 'package:safe_exam_app/features/teacher/monitoring/exam_results_list_screen.dart';
@@ -63,6 +64,13 @@ class AppRouter {
           return ExamResultScreen(examId: id);
         },
       ),
+      GoRoute(
+        path: '/course/detail/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id'] ?? '0';
+          return CourseDetailScreen(courseId: id);
+        },
+      ),
     ],
   );
 }
@@ -78,12 +86,24 @@ class StudentBottomNav extends StatefulWidget {
 class _StudentBottomNavState extends State<StudentBottomNav> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const StudentHomeScreen(),
-    const CoursesScreen(),
-    const ExamsScreen(),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      StudentHomeScreen(
+        onTabChange: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
+      const CoursesScreen(),
+      const ExamsScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
